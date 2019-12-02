@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<?xml-stylesheet type="text/xsl" href="/xml/base.min.xml" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>regression on Andrew Lonergan - Undergraduate Research</title>
+    <link>/tags/regression/</link>
+    <description>Recent content in regression on Andrew Lonergan - Undergraduate Research</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 23 Jul 2015 21:13:14 -0500</lastBuildDate>
+    <atom:link href="/tags/regression/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Extracellular Enzyme Analysis Markdown</title>
+      <link>/post/extracellular-enzyme-analysis-markdown/</link>
+      <pubDate>Sun, 01 Dec 2019 00:00:00 +0000</pubDate>
+      <guid>/post/extracellular-enzyme-analysis-markdown/</guid>
+      <description>
+
+
+&lt;div id=&#34;introduction&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Introduction&lt;/h3&gt;
+&lt;p&gt;This is an R markdown file showing analysis of research I conducted in Dr. Andrew Steen’s biogeochemistry lab. This markdown can be used as a reference for extracellular enzyme assay analyses, or in order to reproduce the analysis we did.&lt;/p&gt;
+&lt;div id=&#34;research-background&#34; class=&#34;section level4&#34;&gt;
+&lt;h4&gt;Research background&lt;/h4&gt;
+&lt;p&gt;The goal of this project is to determine how extracellular enzymes are reacting with substrates in the various hot springs in which the samples were collected. These samples come from different geothermal features across Panama, where there are unique biogeochemical interactions due to the convergent margins, volcanic arcs, microbes, and carbon fluxes. Enzymatic affects on carbon fluxes in these types of environments have been studied very little. We use fluorogenic substrate proxies to represent peptidases, polysaccharide hydrolases, sulfatases, and phosphotases, to get an idea of what these enzymes are breaking down. Most extracellular enzymes follow Michaelis-Menten kinetics, where the initial hydrolysis rate of an enzyme increases with substrate concentration, until it reaches an equillibrium hydrolysis rate. Michaelis-Menten kinetics is shown in the equation and image below.&lt;/p&gt;
+&lt;span class=&#34;math display&#34;&gt;\[
+\large v_o = \frac{V_{max} \times [S]}{K_m + [S]}
+\]&lt;/span&gt;
+&lt;p align=&#34;center&#34;&gt;
+&lt;img src = &#34;https://upload.wikimedia.org/wikipedia/commons/8/83/Michaelis_Menten_curve_2.svg&#34; width = &#34;550&#34; height = &#34;275&#34;&gt;
+&lt;/p&gt;
+&lt;div id=&#34;this-analysis-will-provide-us-with-v_o-the-rate-of-reaction-of-micromoles-of-substrate-being-broken-down-per-liter-per-hour-at-each-site&#34; class=&#34;section level5&#34;&gt;
+&lt;h5&gt;&lt;strong&gt;This analysis will provide us with &lt;span class=&#34;math inline&#34;&gt;\(v_o\)&lt;/span&gt;, the rate of reaction of micromoles of substrate being broken down per liter per hour at each site&lt;/strong&gt;&lt;/h5&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&#34;initial-steps&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Initial steps&lt;/h3&gt;
+&lt;p&gt;We will use a variety of packages and sets of packages to analyze this data in R. Tidyverse is a set of packages meant for data science. Lubridate helps ease the complications surrounding dates and times in R. Devtools creates a directory structure for your packages. Lmstats provides vector summaries of linear models.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;tidyverse&lt;/strong&gt;, &lt;strong&gt;lubridate&lt;/strong&gt;, &lt;strong&gt;devtools&lt;/strong&gt;, and &lt;strong&gt;lmstats&lt;/strong&gt;: Install the packages first, then load them in&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;library(tidyverse)
+library(lubridate)
+library(devtools)
+library(lmstats)&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;div id=&#34;thermal-degradation-test&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Thermal degradation test&lt;/h3&gt;
+&lt;p&gt;A test of substrates and their stability at high temperatures. We want to ensure that these substrates aren’t breaking apart on their own, that way when we have live samples, any fluorometer readings we get can represent enzymatic activity.&lt;br /&gt;
+Read in your data from wherever it is stored in your drive. You can use glimpse to make sure it looks correct&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;thermaldeg_data &amp;lt;- read_csv(&amp;quot;/Users/AL/Desktop/geol490/final_project/2018_10_31_thermaldeg_markdown.csv&amp;quot;)
+
+glimpse(thermaldeg_data)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;strong&gt;Note&lt;/strong&gt;&lt;br /&gt;
+Some of my code will not show in this document to keep it concise. For example, I have ran some mutations using lubridate to ensure my time measurements are placed on a similar scale (elapsed time) instead of the exact time of day I took the measurements. The full code for this analysis can be found on my github page.&lt;/p&gt;
+&lt;div id=&#34;plot-raw-thermal-degradation-data&#34; class=&#34;section level4&#34;&gt;
+&lt;h4&gt;Plot raw thermal degradation data&lt;/h4&gt;
+&lt;p&gt;Ggplot is a great package for data visualization. It is relatively simple to use and creates professional looking plots. We want to show the change in relative fluorescence units over time for our four substrates and buffer. A linear model is a great way to plot this and we can add a shaded region around each line for our standard error. The code below allows us to show this.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;raw_thermalp &amp;lt;- ggplot(thermaldeg_data, aes(x = elapsed.time, 
+                                           y = RFU, 
+                                           colour = substrate, 
+                                           shape = as.factor(replicate))) + 
+  
+  geom_point() +
+  geom_smooth(method = &amp;quot;lm&amp;quot;, se = TRUE) +
+  expand_limits(ymin = 0) + 
+  
+  facet_grid(substrate~temperature, scales = &amp;quot;free_y&amp;quot;)
+
+print(raw_thermalp)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2019-12-01-extracellular-enzyme-analysis-markdown_files/figure-html/unnamed-chunk-4-1.png&#34; width=&#34;672&#34; /&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&#34;enzyme-assay-data&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Enzyme assay data&lt;/h3&gt;
+&lt;p&gt;After showing that our substrates are relatively stable at high temperatures, we are ready to move forward with our enzyme analysis. Read in your data from your live sample fluorometer measurements.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Note&lt;/strong&gt;&lt;br /&gt;
+Similar to the thermal degradation data, I have made a few adjustments to make this code more readily usable for the rest of my analysis. This code can be found on my github.&lt;/p&gt;
+&lt;div id=&#34;plot-the-raw-data&#34; class=&#34;section level4&#34;&gt;
+&lt;h4&gt;Plot the raw data&lt;/h4&gt;
+&lt;p&gt;After you have loaded in your data and made any neccessary manipulations to the time, names, or any other parts, you can now plot the raw data. We will use ggplot again for this. Similar to the thermal degradation plot, we want a linear model of the change in RFU over time. Using facet wrap or facet grid is helpful to break apart your sites and substrates and show them in an easily understood way.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;raw_panamap &amp;lt;- ggplot(panamadata, aes(x = elapsed.hr,
+                                     y = RFU,
+                                     color = filter.type)) +
+  
+  geom_point() +
+  geom_smooth(aes(group = Cuvette),
+              method = &amp;quot;lm&amp;quot;,
+              se = FALSE) +
+  
+  facet_wrap(Substrate~Site, scales = &amp;quot;free&amp;quot;) +
+  
+  theme(text = element_text(size = 6))
+
+print(raw_panamap)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2019-12-01-extracellular-enzyme-analysis-markdown_files/figure-html/unnamed-chunk-7-1.png&#34; width=&#34;672&#34; /&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&#34;begin-analysis&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Begin analysis&lt;/h3&gt;
+&lt;p&gt;Here we create a function that will create a dataframe comparing RFU to elapsed time. Lm_stats provides us with information such as the slope, error, and p value, which we will need later on.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;lm_fun &amp;lt;- function(df) {
+  df &amp;lt;- as.data.frame(df)
+  lm_stats(df, &amp;quot;elapsed.hr&amp;quot;, &amp;quot;RFU&amp;quot;)
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;div id=&#34;calculate-slope-standard-error-and-p-value&#34; class=&#34;section level4&#34;&gt;
+&lt;h4&gt;Calculate slope, standard error and p value&lt;/h4&gt;
+&lt;p&gt;Using the function we just made, we can use map() to extract a vector summary of the slopes, standard errors, and p-values of our Panama data. Nesting will create a list-column of of these data frames, making it more tidy.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;slopes &amp;lt;- panamadata %&amp;gt;%
+  nest() %&amp;gt;%
+  mutate(lmstats_df = map(data, lm_fun)) %&amp;gt;%
+  mutate(uncal.slope = map_dbl(lmstats_df, function(x) x[1, &amp;quot;slope&amp;quot;]),
+         uncal.slope.se = map_dbl(lmstats_df, function(x) x[1, &amp;quot;slope.se&amp;quot;]),
+         rsq = map_dbl(lmstats_df, function(x) x[1, &amp;quot;pval&amp;quot;]))&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Make a column in the slopes data for which fluorophore goes with which substrate. We used leucine-AMC, arginine-AMC, MUB-sulfatase, MUB-b-cellobioside, and MUB-PO4. You should use the fluorophores which are appropriate for your data. Then we merge our two dataframes that have matching rows, by substrate.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;fluorophore_lookup &amp;lt;- data.frame(Substrate = unique(panamadata$Substrate), 
+                                 fluorophore = c(&amp;quot;AMC&amp;quot;, &amp;quot;AMC&amp;quot;, &amp;quot;MUB&amp;quot;, &amp;quot;MUB&amp;quot;, &amp;quot;MUB&amp;quot;))
+slopes &amp;lt;- slopes %&amp;gt;%
+  left_join(fluorophore_lookup, by = &amp;quot;Substrate&amp;quot;)&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&#34;calibration-data&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Calibration data&lt;/h3&gt;
+&lt;p&gt;Our calibration data is how RFU changes with fluorophore concentration. We will ultimately combine this data with our previous analysis to solve for &lt;span class=&#34;math inline&#34;&gt;\(v_o\)&lt;/span&gt;. Read in your data.&lt;/p&gt;
+&lt;div id=&#34;plot-calibration-data&#34; class=&#34;section level4&#34;&gt;
+&lt;h4&gt;Plot calibration data&lt;/h4&gt;
+&lt;p&gt;Using ggplot in a similar fashion as the previous plots.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;plot_calib &amp;lt;- ggplot(calib, aes(x = conc.uM, 
+                             y = RFU, 
+                             colour = as.factor(temperature))) + 
+  
+  geom_point() +
+  geom_smooth(method = &amp;quot;lm&amp;quot;, se = FALSE) + 
+  
+  facet_wrap(~fluorophore)
+
+print(plot_calib) &lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2019-12-01-extracellular-enzyme-analysis-markdown_files/figure-html/unnamed-chunk-12-1.png&#34; width=&#34;672&#34; /&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div id=&#34;create-another-function&#34; class=&#34;section level4&#34;&gt;
+&lt;h4&gt;Create another function&lt;/h4&gt;
+&lt;p&gt;This function is exactly like the last, just changing from time to concentration of our substrates.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;calib_lm_fun &amp;lt;- function(df) {
+  df &amp;lt;- as.data.frame(df)
+  lm_stats(df, &amp;quot;conc.uM&amp;quot;, &amp;quot;RFU&amp;quot;)
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;div id=&#34;calculate-slopes-of-the-calibration-curve&#34; class=&#34;section level4&#34;&gt;
+&lt;h4&gt;Calculate slopes of the calibration curve&lt;/h4&gt;
+&lt;p&gt;Again, a similar analysis as the RFU/time. We only need the type of fluorophore and the slope, which is what select() provides us.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;calib_slopes &amp;lt;- calib %&amp;gt;%
+  group_by(fluorophore) %&amp;gt;%
+  nest() %&amp;gt;%
+  mutate(lmstats_df = map(data, calib_lm_fun),
+         calib.slope = map_dbl(lmstats_df, function(x) x[1, &amp;quot;slope&amp;quot;])) %&amp;gt;%
+  select(fluorophore, calib.slope)&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&#34;combine-datasets&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Combine datasets&lt;/h3&gt;
+&lt;p&gt;Here we want to combine our two datasets, dividing our initial slopes by the calibration slopes. We can use our RFU/time and RFU/concentration data to calculate &lt;span class=&#34;math inline&#34;&gt;\(v_o\)&lt;/span&gt;. If you used replicates with varying filter weights, be sure to find the mean filter weight/measurement. Also take into account the amount of sample fluid that was filtered through each syringe, in my case 0.120 liters.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;mean.filter.weight = 10 * mean(panamadata$filter.weight)
+
+rates &amp;lt;- slopes %&amp;gt;%
+  left_join(calib_slopes, by = &amp;quot;fluorophore&amp;quot;) %&amp;gt;%
+  mutate(v0.unnorm = uncal.slope / calib.slope,
+         v0.unnorm.se = uncal.slope.se / calib.slope,
+         v0.norm = uncal.slope * 10 / 0.120,
+         v0.norm.se = uncal.slope.se * (mean.filter.weight / filter.weight) / 0.120) &lt;/code&gt;&lt;/pre&gt;
+&lt;div id=&#34;calculate-mean-rates&#34; class=&#34;section level4&#34;&gt;
+&lt;h4&gt;Calculate mean rates&lt;/h4&gt;
+&lt;p&gt;Here we want to summarize our rates by calculating the mean rate of &lt;span class=&#34;math inline&#34;&gt;\(v_o\)&lt;/span&gt;, based on where the sample was taken, the susbtrate used, and whether it was a live sample or control sample.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;rates_summ &amp;lt;- rates %&amp;gt;%
+  group_by(Site, Substrate, filter.type) %&amp;gt;%
+  summarise(mean.v0 = mean(v0.norm, na.rm = TRUE),
+            v0.sd = sd(v0.norm, na.rm  = TRUE))&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&#34;final-plot&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Final plot&lt;/h3&gt;
+&lt;p&gt;We want the mean &lt;span class=&#34;math inline&#34;&gt;\(v_o\)&lt;/span&gt; plotted based on site, showing both the live and control samples. Our ranges for each point will take into account standard deviation from the mean. Y lab can be used to change the y axis label, and anything in the theme() section just alters the appearance of the plot.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;p_rates &amp;lt;- ggplot(rates_summ, aes(x = Site, 
+                                  y = mean.v0, 
+                                  shape = filter.type)) + 
+  
+  geom_point() + 
+  geom_pointrange(aes(ymin = mean.v0 - v0.sd,
+                      ymax = mean.v0 + v0.sd)) +
+  
+  ylab(expression(paste(v[0], &amp;quot;, &amp;quot;, mu, &amp;quot;mol &amp;quot;, L^{-1}, &amp;quot; &amp;quot;, hr^{-1}))) +
+  scale_shape_manual(values = c(1, 19), 
+                     name = &amp;quot;Treatment&amp;quot;) +
+ 
+  facet_wrap(~Substrate, scales = &amp;quot;free_y&amp;quot;) +
+  
+  theme_classic() +
+  
+  theme(
+        strip.text = element_text(size = 10),
+        legend.position = c(0.85, 0.10),
+        text = element_text(size = 10),
+        axis.text.x = element_text(angle = -45, hjust = 0))
+
+print(p_rates)         &lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2019-12-01-extracellular-enzyme-analysis-markdown_files/figure-html/unnamed-chunk-17-1.png&#34; width=&#34;672&#34; /&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div id=&#34;conclusion&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Conclusion&lt;/h3&gt;
+&lt;p&gt;You should now have a plot showing your enzymatic activity for each substrate based at each site. Refer to &lt;a href=&#34;https://github.com/alonerga/final_project_490.git&#34; class=&#34;uri&#34;&gt;https://github.com/alonerga/final_project_490.git&lt;/a&gt; for any questions about the code.&lt;/p&gt;
+&lt;/div&gt;
+</description>
+    </item>
+    <item>
+      <title>Hello R Markdown</title>
+      <link>/post/2015-07-23-r-rmarkdown/</link>
+      <pubDate>Thu, 23 Jul 2015 21:13:14 -0500</pubDate>
+      <guid>/post/2015-07-23-r-rmarkdown/</guid>
+      <description>
+
+
+&lt;div id=&#34;r-markdown&#34; class=&#34;section level1&#34;&gt;
+&lt;h1&gt;R Markdown&lt;/h1&gt;
+&lt;p&gt;This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see &lt;a href=&#34;http://rmarkdown.rstudio.com&#34; class=&#34;uri&#34;&gt;http://rmarkdown.rstudio.com&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;You can embed an R code chunk like this:&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;summary(cars)
+##      speed           dist       
+##  Min.   : 4.0   Min.   :  2.00  
+##  1st Qu.:12.0   1st Qu.: 26.00  
+##  Median :15.0   Median : 36.00  
+##  Mean   :15.4   Mean   : 42.98  
+##  3rd Qu.:19.0   3rd Qu.: 56.00  
+##  Max.   :25.0   Max.   :120.00
+fit &amp;lt;- lm(dist ~ speed, data = cars)
+fit
+## 
+## Call:
+## lm(formula = dist ~ speed, data = cars)
+## 
+## Coefficients:
+## (Intercept)        speed  
+##     -17.579        3.932&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;div id=&#34;including-plots&#34; class=&#34;section level1&#34;&gt;
+&lt;h1&gt;Including Plots&lt;/h1&gt;
+&lt;p&gt;You can also embed plots. See Figure &lt;a href=&#34;#fig:pie&#34;&gt;1&lt;/a&gt; for example:&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;par(mar = c(0, 1, 0, 1))
+pie(
+  c(280, 60, 20),
+  c(&amp;#39;Sky&amp;#39;, &amp;#39;Sunny side of pyramid&amp;#39;, &amp;#39;Shady side of pyramid&amp;#39;),
+  col = c(&amp;#39;#0292D8&amp;#39;, &amp;#39;#F7EA39&amp;#39;, &amp;#39;#C4B632&amp;#39;),
+  init.angle = -50, border = NA
+)&lt;/code&gt;&lt;/pre&gt;
+&lt;div class=&#34;figure&#34;&gt;&lt;span id=&#34;fig:pie&#34;&gt;&lt;/span&gt;
+&lt;img src=&#34;/post/2015-07-23-r-rmarkdown_files/figure-html/pie-1.png&#34; alt=&#34;A fancy pie chart.&#34; width=&#34;672&#34; /&gt;
+&lt;p class=&#34;caption&#34;&gt;
+Figure 1: A fancy pie chart.
+&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+</description>
+    </item>
+  </channel>
+</rss>

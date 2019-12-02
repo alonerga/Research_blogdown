@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.60.1" />
+  
+  
+  
+  <title>
+    
+    Andrew Lonergan - Undergraduate Research
+    
+  </title>
+  <link rel="canonical" href="/">
+  
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Andrew Lonergan - Undergraduate Research">
+  
+  
+  
+  
+  
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <link rel="stylesheet" href="/css/base.min.50883c9e7cc6f561db1dcd2089b6b895c60df8d10b9e71a90cbc10e59c8bfc40.css" integrity="sha256-UIg8nnzG9WHbHc0giba4lcYN&#43;NELnnGpDLwQ5ZyL/EA=" crossorigin="anonymous">
+  
+  
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="/">Andrew Lonergan - Undergraduate Research</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="/about/">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="/post/">Posts</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="/tags/">Tags</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="/categories/">Categories</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="/index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/post/extracellular-enzyme-analysis-markdown/" rel="bookmark">Extracellular Enzyme Analysis Markdown</a>
+  </h2>
+  
+  <time datetime="2019-12-01T00:00:00Z">
+    1 December, 2019
+  </time>
+  
+</header>
+
+  
+  
+
+
+<div id="introduction" class="section level3">
+<h3>Introduction</h3>
+<p>This is an R markdown file showing analysis of research I conducted in Dr. Andrew Steen’s biogeochemistry lab. This markdown can be used as a reference for extracellular enzyme assay analyses, or in order to reproduce the analysis we did.</p>
+<div id="research-background" class="section level4">
+<h4>Research background</h4>
+<p>The goal of this project is to determine how extracellular enzymes are reacting with substrates in the various hot springs in which the samples were collected. These samples come from different geothermal features across Panama, where there are unique biogeochemical interactions due to the convergent margins, volcanic arcs, microbes, and carbon fluxes. Enzymatic affects on carbon fluxes in these types of environments have been studied very little. We use fluorogenic substrate proxies to represent peptidases, polysaccharide hydrolases, sulfatases, and phosphotases, to get an idea of what these enzymes are breaking down. Most extracellular enzymes follow Michaelis-Menten kinetics, where the initial hydrolysis rate of an enzyme increases with substrate concentration, until it reaches an equillibrium hydrolysis rate. Michaelis-Menten kinetics is shown in the equation and image below.</p>
+<span class="math display">\[
+\large v_o = \frac{V_{max} \times [S]}{K_m + [S]}
+\]</span>
+<p align="center">
+<img src = "https://upload.wikimedia.org/wikipedia/commons/8/83/Michaelis_Menten_curve_2.svg" width = "550" height = "275">
+</p>
+<div id="this-analysis-will-provide-us-with-v_o-the-rate-of-reaction-of-micromoles-of-substrate-being-broken-down-per-liter-per-hour-at-each-site" class="section level5">
+<h5><strong>This analysis will provide us with <span class="math inline">\(v_o\)</span>, the rate of reaction of micromoles of substrate being broken down per liter per hour at each site</strong></h5>
+</div>
+</div>
+</div>
+<div id="initial-steps" class="section level3">
+<h3>Initial steps</h3>
+<p>We will use a variety of packages and sets of packages to analyze this data in R. Tidyverse is a set of packages meant for data science. Lubridate helps ease the complications surrounding dates and times in R. Devtools creates a directory structure for your packages. Lmstats provides vector summaries of linear models.</p>
+<p><strong>tidyverse</strong>, <strong>lubridate</strong>, <strong>devtools</strong>, and <strong>lmstats</strong>: Install the packages first, then load them in</p>
+<pre class="r"><code>library(tidyverse)
+library(lubridate)
+library(devtools)
+library(lmstats)</code></pre>
+</div>
+<div id="thermal-degradation-test" class="section level3">
+<h3>Thermal degradation test</h3>
+<p>A test of substrates and their stability at high temperatures. We want to ensure that these substrates aren’t breaking apart on their own, that way when we have live samples, any fluorometer readings we get can represent enzymatic activity.<br />
+Read in your data from wherever it is stored in your drive. You can use glimpse to make sure it looks correct</p>
+<pre class="r"><code>thermaldeg_data &lt;- read_csv(&quot;/Users/AL/Desktop/geol490/final_project/2018_10_31_thermaldeg_markdown.csv&quot;)
+
+glimpse(thermaldeg_data)</code></pre>
+<p><strong>Note</strong><br />
+Some of my code will not show in this document to keep it concise. For example, I have ran some mutations using lubridate to ensure my time measurements are placed on a similar scale (elapsed time) instead of the exact time of day I took the measurements. The full code for this analysis can be found on my github page.</p>
+<div id="plot-raw-thermal-degradation-data" class="section level4">
+<h4>Plot raw thermal degradation data</h4>
+<p>Ggplot is a great package for data visualization. It is relatively simple to use and creates professional looking plots. We want to show the change in relative fluorescence units over time for our four substrates and buffer. A linear model is a great way to plot this and we can add a shaded region around each line for our standard error. The code below allows us to show this.</p>
+<pre class="r"><code>raw_thermalp &lt;- ggplot(thermaldeg_data, aes(x = elapsed.time, 
+                                           y = RFU, 
+                                           colour = substrate, 
+                                           shape = as.factor(replicate))) + 
+  
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;, se = TRUE) +
+  expand_limits(ymin = 0) + 
+  
+  facet_grid(substrate~temperature, scales = &quot;free_y&quot;)
+
+print(raw_thermalp)</code></pre>
+<p><img src="/post/2019-12-01-extracellular-enzyme-analysis-markdown_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>
+</div>
+<div id="enzyme-assay-data" class="section level3">
+<h3>Enzyme assay data</h3>
+<p>After showing that our substrates are relatively stable at high temperatures, we are ready to move forward with our enzyme analysis. Read in your data from your live sample fluorometer measurements.</p>
+<p><strong>Note</strong><br />
+Similar to the thermal degradation data, I have made a few adjustments to make this code more readily usable for the rest of my analysis. This code can be found on my github.</p>
+<div id="plot-the-raw-data" class="section level4">
+<h4>Plot the raw data</h4>
+<p>After you have loaded in your data and made any neccessary manipulations to the time, names, or any other parts, you can now plot the raw data. We will use ggplot again for this. Similar to the thermal degradation plot, we want a linear model of the change in RFU over time. Using facet wrap or facet grid is helpful to break apart your sites and substrates and show them in an easily understood way.</p>
+<pre class="r"><code>raw_panamap &lt;- ggplot(panamadata, aes(x = elapsed.hr,
+                                     y = RFU,
+                                     color = filter.type)) +
+  
+  geom_point() +
+  geom_smooth(aes(group = Cuvette),
+              method = &quot;lm&quot;,
+              se = FALSE) +
+  
+  facet_wrap(Substrate~Site, scales = &quot;free&quot;) +
+  
+  theme(text = element_text(size = 6))
+
+print(raw_panamap)</code></pre>
+<p><img src="/post/2019-12-01-extracellular-enzyme-analysis-markdown_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+</div>
+</div>
+<div id="begin-analysis" class="section level3">
+<h3>Begin analysis</h3>
+<p>Here we create a function that will create a dataframe comparing RFU to elapsed time. Lm_stats provides us with information such as the slope, error, and p value, which we will need later on.</p>
+<pre class="r"><code>lm_fun &lt;- function(df) {
+  df &lt;- as.data.frame(df)
+  lm_stats(df, &quot;elapsed.hr&quot;, &quot;RFU&quot;)
+}</code></pre>
+<div id="calculate-slope-standard-error-and-p-value" class="section level4">
+<h4>Calculate slope, standard error and p value</h4>
+<p>Using the function we just made, we can use map() to extract a vector summary of the slopes, standard errors, and p-values of our Panama data. Nesting will create a list-column of of these data frames, making it more tidy.</p>
+<pre class="r"><code>slopes &lt;- panamadata %&gt;%
+  nest() %&gt;%
+  mutate(lmstats_df = map(data, lm_fun)) %&gt;%
+  mutate(uncal.slope = map_dbl(lmstats_df, function(x) x[1, &quot;slope&quot;]),
+         uncal.slope.se = map_dbl(lmstats_df, function(x) x[1, &quot;slope.se&quot;]),
+         rsq = map_dbl(lmstats_df, function(x) x[1, &quot;pval&quot;]))</code></pre>
+<p>Make a column in the slopes data for which fluorophore goes with which substrate. We used leucine-AMC, arginine-AMC, MUB-sulfatase, MUB-b-cellobioside, and MUB-PO4. You should use the fluorophores which are appropriate for your data. Then we merge our two dataframes that have matching rows, by substrate.</p>
+<pre class="r"><code>fluorophore_lookup &lt;- data.frame(Substrate = unique(panamadata$Substrate), 
+                                 fluorophore = c(&quot;AMC&quot;, &quot;AMC&quot;, &quot;MUB&quot;, &quot;MUB&quot;, &quot;MUB&quot;))
+slopes &lt;- slopes %&gt;%
+  left_join(fluorophore_lookup, by = &quot;Substrate&quot;)</code></pre>
+</div>
+</div>
+<div id="calibration-data" class="section level3">
+<h3>Calibration data</h3>
+<p>Our calibration data is how RFU changes with fluorophore concentration. We will ultimately combine this data with our previous analysis to solve for <span class="math inline">\(v_o\)</span>. Read in your data.</p>
+<div id="plot-calibration-data" class="section level4">
+<h4>Plot calibration data</h4>
+<p>Using ggplot in a similar fashion as the previous plots.</p>
+<pre class="r"><code>plot_calib &lt;- ggplot(calib, aes(x = conc.uM, 
+                             y = RFU, 
+                             colour = as.factor(temperature))) + 
+  
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;, se = FALSE) + 
+  
+  facet_wrap(~fluorophore)
+
+print(plot_calib) </code></pre>
+<p><img src="/post/2019-12-01-extracellular-enzyme-analysis-markdown_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+</div>
+<div id="create-another-function" class="section level4">
+<h4>Create another function</h4>
+<p>This function is exactly like the last, just changing from time to concentration of our substrates.</p>
+<pre class="r"><code>calib_lm_fun &lt;- function(df) {
+  df &lt;- as.data.frame(df)
+  lm_stats(df, &quot;conc.uM&quot;, &quot;RFU&quot;)
+}</code></pre>
+</div>
+<div id="calculate-slopes-of-the-calibration-curve" class="section level4">
+<h4>Calculate slopes of the calibration curve</h4>
+<p>Again, a similar analysis as the RFU/time. We only need the type of fluorophore and the slope, which is what select() provides us.</p>
+<pre class="r"><code>calib_slopes &lt;- calib %&gt;%
+  group_by(fluorophore) %&gt;%
+  nest() %&gt;%
+  mutate(lmstats_df = map(data, calib_lm_fun),
+         calib.slope = map_dbl(lmstats_df, function(x) x[1, &quot;slope&quot;])) %&gt;%
+  select(fluorophore, calib.slope)</code></pre>
+</div>
+</div>
+<div id="combine-datasets" class="section level3">
+<h3>Combine datasets</h3>
+<p>Here we want to combine our two datasets, dividing our initial slopes by the calibration slopes. We can use our RFU/time and RFU/concentration data to calculate <span class="math inline">\(v_o\)</span>. If you used replicates with varying filter weights, be sure to find the mean filter weight/measurement. Also take into account the amount of sample fluid that was filtered through each syringe, in my case 0.120 liters.</p>
+<pre class="r"><code>mean.filter.weight = 10 * mean(panamadata$filter.weight)
+
+rates &lt;- slopes %&gt;%
+  left_join(calib_slopes, by = &quot;fluorophore&quot;) %&gt;%
+  mutate(v0.unnorm = uncal.slope / calib.slope,
+         v0.unnorm.se = uncal.slope.se / calib.slope,
+         v0.norm = uncal.slope * 10 / 0.120,
+         v0.norm.se = uncal.slope.se * (mean.filter.weight / filter.weight) / 0.120) </code></pre>
+<div id="calculate-mean-rates" class="section level4">
+<h4>Calculate mean rates</h4>
+<p>Here we want to summarize our rates by calculating the mean rate of <span class="math inline">\(v_o\)</span>, based on where the sample was taken, the susbtrate used, and whether it was a live sample or control sample.</p>
+<pre class="r"><code>rates_summ &lt;- rates %&gt;%
+  group_by(Site, Substrate, filter.type) %&gt;%
+  summarise(mean.v0 = mean(v0.norm, na.rm = TRUE),
+            v0.sd = sd(v0.norm, na.rm  = TRUE))</code></pre>
+</div>
+</div>
+<div id="final-plot" class="section level3">
+<h3>Final plot</h3>
+<p>We want the mean <span class="math inline">\(v_o\)</span> plotted based on site, showing both the live and control samples. Our ranges for each point will take into account standard deviation from the mean. Y lab can be used to change the y axis label, and anything in the theme() section just alters the appearance of the plot.</p>
+<pre class="r"><code>p_rates &lt;- ggplot(rates_summ, aes(x = Site, 
+                                  y = mean.v0, 
+                                  shape = filter.type)) + 
+  
+  geom_point() + 
+  geom_pointrange(aes(ymin = mean.v0 - v0.sd,
+                      ymax = mean.v0 + v0.sd)) +
+  
+  ylab(expression(paste(v[0], &quot;, &quot;, mu, &quot;mol &quot;, L^{-1}, &quot; &quot;, hr^{-1}))) +
+  scale_shape_manual(values = c(1, 19), 
+                     name = &quot;Treatment&quot;) +
+ 
+  facet_wrap(~Substrate, scales = &quot;free_y&quot;) +
+  
+  theme_classic() +
+  
+  theme(
+        strip.text = element_text(size = 10),
+        legend.position = c(0.85, 0.10),
+        text = element_text(size = 10),
+        axis.text.x = element_text(angle = -45, hjust = 0))
+
+print(p_rates)         </code></pre>
+<p><img src="/post/2019-12-01-extracellular-enzyme-analysis-markdown_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
+</div>
+<div id="conclusion" class="section level3">
+<h3>Conclusion</h3>
+<p>You should now have a plot showing your enzymatic activity for each substrate based at each site. Refer to <a href="https://github.com/alonerga/final_project_490.git" class="uri">https://github.com/alonerga/final_project_490.git</a> for any questions about the code.</p>
+</div>
+
+  
+  
+
+
+
+
+
+
+
+</article>
+<div class="Divider"></div>
+
+
+
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Except where otherwise noted, content on this site is licensed under a a <a href="http://creativecommons.org/licenses/by/4.0/" rel="license"> Creative Commons Attribution 4.0 International License</a>.
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>
